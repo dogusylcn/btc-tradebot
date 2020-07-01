@@ -1,7 +1,3 @@
 # AlpCOIN01
 
-
-
-https://www.blockcypher.com/dev/dash/
-
-https://whale-alert.io/pricing
+Bilederim bu gün işe gidicem ben sen masaüstünde arkada çalıştır be collectoru
