@@ -38,8 +38,8 @@ class Fuhuscoin():
             x=tf.matmul(x,self.variables["h-w-{}".format(i)])+self.variables["h-b-{}".format(i)]
         return tf.nn.softmax(tf.matmul(x,self.variables["w-{}".format("end")])+self.variables["b-{}".format("end")])
         
-    def loss(self,logits):
-        return tf.math.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.labels, logits=logits))
+    def loss(self):
+        return tf.math.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.labels, logits=self.evaluate()))
     
     def getvariables(self):
         return list(self.variables.values())
@@ -51,8 +51,8 @@ class Fuhuscoin():
         for epoch in range(epochs):
             for i in range(int(len(data[0])/batch)):
                 logits=self.evaluate()
-                loss=self.loss(logits)
-                self.sess.run(self.optimizer().minimize(loss,self.getvariables()),
+                loss=self.loss()
+                self.sess.run(self.optimizer().minimize(self.loss,self.getvariables()),
                                 feed_dict={
                                    self.last_24_hour_txs:data[0][i*batch:(i+1)*batch],
                                    self.last_24_hour_buydiff:data[1][i*batch:(i+1)*batch],
