@@ -41,13 +41,13 @@ class Fuhuscoin():
     def getvariables(self):
         return list(self.variables.values())
     
-    def train(self, data, batch, epochs):
+    def train(self, data, batch, epochs, lr):
         #buraya traini yazcam
         for epoch in range(epochs):
             for i in range(int(len(data[0])/batch)):
                 logits=self.evaluate()
                 loss=self.loss(logits)
-                self.sess.run(self.optimizer.minimize(loss),
+                self.sess.run(self.optimizer(lr).minimize(loss),
                                 feed_dict={
                                    self.last_24_hour_txs:data[0][i*batch:(i+1)*batch],
                                    self.last_24_hour_buydiff:data[1][i*batch:(i+1)*batch],
@@ -70,4 +70,4 @@ x2=np.random.rand(5,1440)
 x3=np.random.rand(5,1440)
 x4=np.eye(3)[[0,1,2,2,1]]
 
-model.train([x1,x2,x3,x4],5,3)
+model.train([x1,x2,x3,x4],5,3,0.1)
