@@ -1,9 +1,22 @@
-#tensorflow==1.5
+## Fuhuscoin v0.1
+## model=Fuhuscoin(ins,outs,hl,path="C:/btc/fuhus-model/model.ckpt")
+##  - ins = input shape[1] (note that there is 3 same shaped input)
+##  - out = output shape[1] (one hot array)
+##  - hl = hidden layers
+##  - path = model save path
+## model.train(data, labels, batch, epochs, lr)
+##  - data = input data ( list that contains 3 same shaped array )
+##  - labels = output data ( one hot array )
+##  - batch = batch size ( data will be separated by batch size )
+##  - epochs = number of train process
+##  - lr = learning rate for optimizer
+## model(data) //returns model output
+##  - data = input data ( list that contains 3 same shaped array )
 
 import tensorflow as tf
 
 class Fuhuscoin():
-    def __init__(self,ins,outs,hl):
+    def __init__(self,ins,outs,hl,path="C:/btc/fuhus-model/model.ckpt"):
         self.insize=ins
         self.outsize=outs
         self.hiddenlayers=hl
@@ -12,7 +25,18 @@ class Fuhuscoin():
         self.variables={}
         self.init_variables()
         self.sess=tf.Session()
+        self.path=path
         self.saver = tf.train.Saver(self.getvariables())
+
+    def __call__(self,data):
+        self.saver.restore(self.sess,self.path)
+        ret=self.sess.run(tf.argmax(tf.nn.softmax(self.evaluate()),1),
+                          feed_dict={
+                                self.last_24_hour_txs:data[0],
+                                self.last_24_hour_buydiff:data[1],
+                                self.last_24_hour_selldiff:data[2]})
+        print(ret)
+        
         
     def placeholders(self):
         self.last_24_hour_txs=tf.placeholder(tf.float32,shape=(None,self.insize), name="last_24_hour_txs")
@@ -43,7 +67,7 @@ class Fuhuscoin():
     def getvariables(self):
         return list(self.variables.values())
     
-    def train(self, data, batch, epochs, lr):
+    def train(self, data, labels, batch, epochs, lr):
         opt=self.optimizer(lr).minimize(self.loss(),var_list=self.getvariables())
         self.sess.run(tf.global_variables_initializer())
         self.sess.run(tf.local_variables_initializer())
@@ -55,21 +79,20 @@ class Fuhuscoin():
                                    self.last_24_hour_txs:data[0][i*batch:(i+1)*batch],
                                    self.last_24_hour_buydiff:data[1][i*batch:(i+1)*batch],
                                    self.last_24_hour_selldiff:data[2][i*batch:(i+1)*batch],
-                                   self.labels:data[3][i*batch:(i+1)*batch]
+                                   self.labels:labels[i*batch:(i+1)*batch]
                                 })
             if epoch%10==1:
-                loss,ret=self.sess.run([self.loss(),tf.nn.softmax(self.evaluate())],
+                loss=self.sess.run([self.loss()],
                                 feed_dict={
                                    self.last_24_hour_txs:data[0],
                                    self.last_24_hour_buydiff:data[1],
                                    self.last_24_hour_selldiff:data[2],
-                                   self.labels:data[3]
+                                   self.labels:labels
                                 }
                               )
                 print("Epoch: {} - Loss: {}".format(epoch,loss))
-                print(ret)
-                self.saver.save(self.sess,"C:/btc/fuhus-model/model.ckpt")
-        self.saver.save(self.sess,"C:/btc/fuhus-model/model.ckpt")
+                self.saver.save(self.sess,self.path)
+        self.saver.save(self.sess,self.path)
 
 
 
@@ -80,6 +103,8 @@ import numpy as np
 x1=np.random.rand(5,1440)
 x2=np.random.rand(5,1440)
 x3=np.random.rand(5,1440)
-x4=np.eye(3)[[0,1,2,2,1]]
+lbls=np.eye(3)[[0,1,2,2,1]]
 
-model.train([x1,x2,x3,x4],5,41,0.0001)
+model.train([x1,x2,x3],lbls,5,41,0.0001)
+
+model([x1,x2,x3])
