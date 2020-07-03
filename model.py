@@ -1,25 +1,24 @@
+#tensorflow==1.5
+
 import tensorflow as tf
-tf.compat.v1.disable_eager_execution()
 
 class Fuhuscoin():
     def __init__(self,ins,outs,hl):
         self.insize=ins
         self.outsize=outs
         self.hiddenlayers=hl
-        self.optimizer=tf.compat.v1.train.AdamOptimizer
+        self.optimizer=tf.train.AdamOptimizer
         self.placeholders()
         self.variables={}
         self.init_variables()
-        self.sess=tf.compat.v1.Session()
-        self.global_initializer=tf.compat.v1.global_variables_initializer()
-        self.local_initializer=tf.compat.v1.local_variables_initializer()
-        self.saver = tf.compat.v1.train.Saver(self.getvariables())
+        self.sess=tf.Session()
+        self.saver = tf.train.Saver(self.getvariables())
         
     def placeholders(self):
-        self.last_24_hour_txs=tf.compat.v1.placeholder(tf.float32,shape=(None,self.insize), name="last_24_hour_txs")
-        self.last_24_hour_buydiff=tf.compat.v1.placeholder(tf.float32,shape=(None,self.insize), name="last_24_hour_buydiff")
-        self.last_24_hour_selldiff=tf.compat.v1.placeholder(tf.float32,shape=(None,self.insize), name="last_24_hour_selldiff")
-        self.labels=tf.compat.v1.placeholder(tf.float32,shape=(None,self.outsize), name="labels")
+        self.last_24_hour_txs=tf.placeholder(tf.float32,shape=(None,self.insize), name="last_24_hour_txs")
+        self.last_24_hour_buydiff=tf.placeholder(tf.float32,shape=(None,self.insize), name="last_24_hour_buydiff")
+        self.last_24_hour_selldiff=tf.placeholder(tf.float32,shape=(None,self.insize), name="last_24_hour_selldiff")
+        self.labels=tf.placeholder(tf.float32,shape=(None,self.outsize), name="labels")
         
     def init_variables(self):
         self.hls=[int((self.insize*3+self.outsize)/(self.hiddenlayers+1))*x for x in range(1,self.hiddenlayers+1)]
@@ -36,34 +35,41 @@ class Fuhuscoin():
         x=tf.matmul(x,self.variables["w-{}".format("start")])+self.variables["b-{}".format("start")]
         for i in range(self.hiddenlayers-1):
             x=tf.matmul(x,self.variables["h-w-{}".format(i)])+self.variables["h-b-{}".format(i)]
-        return tf.nn.softmax(tf.matmul(x,self.variables["w-{}".format("end")])+self.variables["b-{}".format("end")])
+        return tf.matmul(x,self.variables["w-{}".format("end")])+self.variables["b-{}".format("end")]
         
     def loss(self):
-        return tf.math.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.labels, logits=self.evaluate()))
+        return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.labels, logits=self.evaluate()))
     
     def getvariables(self):
         return list(self.variables.values())
     
     def train(self, data, batch, epochs, lr):
-        #buraya traini yazcam
-        opt=self.optimizer()
-        self.sess.run(self.global_initializer)
-        self.sess.run(self.local_initializer)
+        opt=self.optimizer(lr).minimize(self.loss(),var_list=self.getvariables())
+        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.local_variables_initializer())
         for epoch in range(epochs):
             for i in range(int(len(data[0])/batch)):
                 logits=self.evaluate()
-                loss=self.loss()
-                self.sess.run(opt.minimize(loss,var_list=self.getvariables()),
+                self.sess.run(opt,
                                 feed_dict={
                                    self.last_24_hour_txs:data[0][i*batch:(i+1)*batch],
                                    self.last_24_hour_buydiff:data[1][i*batch:(i+1)*batch],
                                    self.last_24_hour_selldiff:data[2][i*batch:(i+1)*batch],
-                                   self.labels:data[3]
+                                   self.labels:data[3][i*batch:(i+1)*batch]
                                 })
-            if epoch%100==1:
+            if epoch%10==1:
+                loss,ret=self.sess.run([self.loss(),tf.nn.softmax(self.evaluate())],
+                                feed_dict={
+                                   self.last_24_hour_txs:data[0],
+                                   self.last_24_hour_buydiff:data[1],
+                                   self.last_24_hour_selldiff:data[2],
+                                   self.labels:data[3]
+                                }
+                              )
                 print("Epoch: {} - Loss: {}".format(epoch,loss))
-                self.saver.save(self.sess,"fuhus-model")
-        self.saver.save(self.sess,"fuhus-model")
+                print(ret)
+                self.saver.save(self.sess,"C:/btc/fuhus-model/model.ckpt")
+        self.saver.save(self.sess,"C:/btc/fuhus-model/model.ckpt")
 
 
 
@@ -76,4 +82,4 @@ x2=np.random.rand(5,1440)
 x3=np.random.rand(5,1440)
 x4=np.eye(3)[[0,1,2,2,1]]
 
-model.train([x1,x2,x3,x4],5,3,0.1)
+model.train([x1,x2,x3,x4],5,41,0.0001)
