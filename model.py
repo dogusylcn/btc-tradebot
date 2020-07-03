@@ -1,4 +1,5 @@
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 
 class Fuhuscoin():
     def __init__(self,ins,outs,hl):
