@@ -10,7 +10,7 @@ class Fuhuscoin():
         self.placeholders()
         self.variables={}
         self.init_variables()
-        self.sess=tf.Session()
+        self.sess=tf.compat.v1.Session()
         self.global_initializer=tf.compat.v1.global_variables_initializer()
         self.local_initializer=tf.compat.v1.local_variables_initializer()
         self.saver = tf.compat.v1.train.Saver(self.getvariables())
