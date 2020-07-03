@@ -5,11 +5,13 @@ class Fuhuscoin():
         self.insize=ins
         self.outsize=outs
         self.hiddenlayers=hl
-        self.optimizer=tf.compat.v1.train.AdamOptimizer
+        self.optimizer=tf.keras.optimizers.Adam
         self.placeholders()
         self.variables={}
         self.init_variables()
         self.sess=tf.Session()
+        self.global_initializer=tf.compat.v1.global_variables_initializer()
+        self.local_initializer=tf.compat.v1.local_variables_initializer()
         self.saver = tf.compat.v1.train.Saver(self.getvariables())
         
     def placeholders(self):
@@ -24,10 +26,10 @@ class Fuhuscoin():
         self.variables["b-{}".format("start")]= tf.Variable(tf.random_normal_initializer()(shape=[self.hls[0]], dtype=tf.float32), name="b-{}".format("start"))
         for i in range(self.hiddenlayers-1):
             self.variables["h-w-{}".format(i)]= tf.Variable(tf.random_normal_initializer()(shape=[self.hls[i], self.hls[i+1]], dtype=tf.float32), name="h-w-{}".format(i))
-            self.variables["h-b-{}".format(i)]= tf.Variable(tf.random_normal_initializer()(shape=[self.hls[i+1]], dtype=tf.float32), name="h-w-{}".format(i))
+            self.variables["h-b-{}".format(i)]= tf.Variable(tf.random_normal_initializer()(shape=[self.hls[i+1]], dtype=tf.float32), name="h-b-{}".format(i))
         self.variables["w-{}".format("end")]= tf.Variable(tf.random_normal_initializer()(shape=[self.hls[-1],self.outsize], dtype=tf.float32), name="w-{}".format("end"))
-        self.variables["b-{}".format("end")]= tf.Variable(tf.random_normal_initializer()(shape=[self.outsize], dtype=tf.float32), name="w-{}".format("end"))
-    
+        self.variables["b-{}".format("end")]= tf.Variable(tf.random_normal_initializer()(shape=[self.outsize], dtype=tf.float32), name="b-{}".format("end"))
+        
     def evaluate(self):
         x=tf.concat([self.last_24_hour_txs,self.last_24_hour_buydiff,self.last_24_hour_selldiff],1)
         x=tf.matmul(x,self.variables["w-{}".format("start")])+self.variables["b-{}".format("start")]
@@ -43,11 +45,13 @@ class Fuhuscoin():
     
     def train(self, data, batch, epochs, lr):
         #buraya traini yazcam
+        self.sess.run(self.global_initializer)
+        self.sess.run(self.local_initializer)
         for epoch in range(epochs):
             for i in range(int(len(data[0])/batch)):
                 logits=self.evaluate()
                 loss=self.loss(logits)
-                self.sess.run(self.optimizer(lr).minimize(loss),
+                self.sess.run(self.optimizer().minimize(loss,getvariables()),
                                 feed_dict={
                                    self.last_24_hour_txs:data[0][i*batch:(i+1)*batch],
                                    self.last_24_hour_buydiff:data[1][i*batch:(i+1)*batch],
@@ -64,7 +68,7 @@ class Fuhuscoin():
 model=Fuhuscoin(1440,3,3)
 
 import numpy as np
-
+ 
 x1=np.random.rand(5,1440)
 x2=np.random.rand(5,1440)
 x3=np.random.rand(5,1440)
