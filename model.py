@@ -52,7 +52,7 @@ class Fuhuscoin():
             for i in range(int(len(data[0])/batch)):
                 logits=self.evaluate()
                 loss=self.loss(logits)
-                self.sess.run(self.optimizer().minimize(loss,getvariables()),
+                self.sess.run(self.optimizer().minimize(loss,self.getvariables()),
                                 feed_dict={
                                    self.last_24_hour_txs:data[0][i*batch:(i+1)*batch],
                                    self.last_24_hour_buydiff:data[1][i*batch:(i+1)*batch],
