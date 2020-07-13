@@ -1,0 +1,2 @@
+model_checkpoint_path: "C:/btc/fuhus-model/model.ckpt"
+all_model_checkpoint_paths: "C:/btc/fuhus-model/model.ckpt"
